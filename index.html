@@ -777,11 +777,17 @@ document.getElementById("examples").addEventListener("change", event => {
 
 askArea.addEventListener("submit", event => {
     event.preventDefault();
-    if (inputResolver) {
-        const resolve = inputResolver;
-        inputResolver = null;
-        resolve(answer.value);
+
+    if (typeof inputResolver !== "function") {
+        print("Erreur : Astra n'attend aucune reponse.", "error");
+        return;
     }
+
+    const resolve = inputResolver;
+    inputResolver = null;
+
+    askArea.style.display = "none";
+    resolve(answer.value);
 });
 
 editor.addEventListener("keydown", event => {
