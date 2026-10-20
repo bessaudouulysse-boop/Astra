@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Astra Playground</title>
+
+<style>
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    background: #0b1020;
+    color: #e7edf8;
+    font-family: Arial, sans-serif;
+}
+
+header {
+    padding: 18px;
+    background: #121a2d;
+    border-bottom: 1px solid #344362;
+}
+
+h1 {
+    margin: 0;
+    font-size: 24px;
+}
+
+header p {
+    margin-bottom: 0;
+    color: #9eacc5;
+}
+
+main {
+    padding: 14px;
+    max-width: 1000px;
+    margin: auto;
+}
+
+button, select {
+    padding: 11px;
+    border-radius: 8px;
+    border: 1px solid #344362;
+    background: #1a2540;
+    color: white;
+    font-size: 15px;
+    margin: 3px;
+}
+
+#run {
+    background: #809cff;
+    color: #071126;
+    font-weight: bold;
+}
+
+h2 {
+    font-size: 16px;
+    margin: 0;
+}
+
+.panel {
+    margin-top: 12px;
+    border: 1px solid #344362;
+    border-radius: 10px;
+    overflow: hidden;
+    background: #121a2d;
+}
+
+.panel-title {
+    padding: 12px;
+    background: #19243b;
+    border-bottom: 1px solid #344362;
+}
+
+#code {
+    display: block;
+    width: 100%;
+    height: 390px;
+    padding: 14px;
+    resize: vertical;
+    background: #080e1a;
+    color: #dce6ff;
+    border: none;
+    outline: none;
+    font-family: monospace;
+    font-size: 14px;
+    line-height: 1.6;
+    tab-size: 4;
+}
+
+#output {
+    min-height: 140px;
+    padding: 14px;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    font-family: monospace;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.error {
+    color: #ff7b86;
+}
+
+#askArea {
+    display: none;
+    padding: 12px;
+    gap: 8px;
+    border-top: 1px solid #344362;
+}
+
+#answer {
+    min-width: 0;
+    flex: 1;
+    padding: 10px;
+    background: #080e1a;
+    color: white;
+    border: 1px solid #344362;
+    border-radius: 7px;
+    font-size: 16px;
+}
+
+.help {
+    padding: 14px;
+    color: #aebbd2;
+    line-height: 1.7;
+    font-size: 14px;
+}
+
+code {
+    color: #a9bcff;
+}
+
+@media (min-width: 750px) {
+    .columns {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 14px;
+        align-items: start;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<header>
+    <h1>⚡ Astra Playground</h1>
+    <p>Écris. Exécute. Apprends.</p>
+</header>
+
+<main>
+
+    <div>
+        <button id="run">▶ Exécuter</button>
+        <button id="clear">Effacer la console</button>
+        <button id="reset">Réinitialiser</button>
+
+        <select id="examples">
+            <option value="hello">Bonjour Astra</option>
+            <option value="loop">Boucle et fonction</option>
+            <option value="ask">Question / réponse</option>
+        </select>
+    </div>
+
+    <div class="columns">
+
+        <section class="panel">
+            <div class="panel-title">
+                <h2>📝 game.astra</h2>
+            </div>
+            <textarea id="code" spellcheck="false"></textarea>
+        </section>
+
+        <div>
+
+            <section class="panel">
+                <div class="panel-title">
+                    <h2>🖥️ Console</h2>
+                </div>
+
+                <div id="output">Prêt à exécuter Astra !</div>
+
+                <form id="askArea">
+                    <input id="answer"
+                           placeholder="Ta réponse..."
+                           autocomplete="off">
+                    <button type="submit">Envoyer</button>
+                </form>
+            </section>
+
+            <section class="panel">
+                <div class="panel-title">
+                    <h2>📚 Aide rapide</h2>
+                </div>
+
+                <div class="help">
+                    <b>Afficher du texte</b><br>
+                    <code>show "Bonjour !"</code><br><br>
+
+                    <b>Créer une variable</b><br>
+                    <code>var score = 0</code><br><br>
+
+                    <b>Modifier une variable</b><br>
+                    <code>set.var.score = score + 1</code><br><br>
+
+                    <b>Poser une question</b><br>
+                    <code>ask "Ton nom ?" save at name</code><br>
+                    <code>show name</code>
+                </div>
+            </section>
+
+        </div>
+    </div>
+</main>
+
+<script>
+const initialCode = `show "Bienvenue dans Astra !"
+
+var score = 0
+let maximum = 3
+
+set.function "ajouter": <<
+    set.var.score = score + 1
+    show score
+>>
+
+set.loop "compter": <<
+    while score < maximum:
+        run.function.ajouter(game)
+>>
+
+run.loop.compter(game)
+show "Terminé !"
+`;
+
+const examples = {
+    hello: `show "Bonjour depuis Astra !"
+
+var language = "Astra"
+show language
+`,
+
+    loop: initialCode,
+
+    ask: `ask "Quel est ton nom ?" save at name
+show "Bonjour " + name
+
+ask "Quel age as-tu ?" save at age
+show age
+`
+};
+
+const editor = document.getElementById("code");
+const output = document.getElementById("output");
+const askArea = document.getElementById("askArea");
+const answer = document.getElementById("answer");
+
+editor.value = initialCode;
+
+let pendingInput = null;
+let stopped = false;
+
+function print(text, cls = "") {
+    const line = document.createElement("div");
+    line.textContent = String(text);
+    if (cls) line.className = cls;
+    output.appendChild(line);
+    output.scrollTop = output.scrollHeight;
+}
+
+function display(value) {
+    return value === null || value === undefined
+        ? "None"
+        : String(value);
+}
+
+function parseString(text) {
+    text = text.trim();
+
+    if (text.length >= 2 &&
+        text.startsWith('"') &&
+        text.endsWith('"')) {
+        return text.slice(1, -1);
+    }
+
+    return text;
+}
+
+function findOperator(text, operators) {
+    let inString = false;
+
+    for (let i = 0; i < text.length; i++) {
+        if (text[i] === '"') {
+            inString = !inString;
+            continue;
+        }
+
+        if (inString) continue;
+
+        for (const op of operators) {
+            if (!text.startsWith(op, i)) continue;
+
+            if (op === "-" &&
+                (i === 0 || text.slice(0, i).trim() === "")) {
+                continue;
+            }
+
+            return [i, op];
+        }
+    }
+
+    return null;
+}
+
+function evaluate(expression, vars) {
+    const s = expression.trim();
+
+    if (!s || s === "None") return null;
+    if (s === "true") return true;
+    if (s === "false") return false;
+
+    if (s.startsWith('"') && s.endsWith('"')) {
+        return parseString(s);
+    }
+
+    if (/^-?\d+$/.test(s)) {
+        return Number(s);
+    }
+
+    const found = findOperator(s, ["+", "-"]);
+
+    if (found) {
+        const [pos, op] = found;
+
+        const left = evaluate(s.slice(0, pos), vars);
+        const right = evaluate(s.slice(pos + op.length), vars);
+
+        if (typeof left === "number" &&
+            typeof right === "number") {
+            return op === "+"
+                ? left + right
+                : left - right;
+        }
+
+        if (op === "+") {
+            return display(left) + display(right);
+        }
+
+        return null;
+    }
+
+    return vars.has(s) ? vars.get(s) : null;
+}
+
+function testCondition(expression, vars) {
+    const s = expression.trim().replace(/:$/, "").trim();
+
+    const found = findOperator(
+        s,
+        [">=", "<=", "==", "!=", ">", "<"]
+    );
+
+    if (found) {
+        const [pos, op] = found;
+
+        const left = evaluate(s.slice(0, pos), vars);
+        const right = evaluate(s.slice(pos + op.length), vars);
+
+        if (typeof left === "number" &&
+            typeof right === "number") {
+            switch (op) {
+                case ">=": return left >= right;
+                case "<=": return left <= right;
+                case "==": return left === right;
+                case "!=": return left !== right;
+                case ">": return left > right;
+                case "<": return left < right;
+            }
+        }
+
+        if (op === "==") return left === right;
+        if (op === "!=") return left !== right;
+
+        return false;
+    }
+
+    const value = evaluate(s, vars);
+
+    if (typeof value === "boolean") return value;
+    if (typeof value === "number") return value !== 0;
+
+    return typeof value === "string" && value.length > 0;
+}
+
+function collectBlock(lines, start) {
+    const body = [];
+    let started = false;
+
+    for (let i = start; i < lines.length; i++) {
+        const s = lines[i].trim();
+
+        if (!started) {
+            const pos = s.indexOf("<<");
+
+            if (pos >= 0) {
+                started = true;
+                const after = s.slice(pos + 2);
+
+                if (after.includes(">>")) {
+                    const content =
+                        after.slice(0, after.indexOf(">>")).trim();
+
+                    if (content) body.push(content);
+
+                    return { body, next: i + 1 };
+                }
+
+                if (after.trim()) body.push(after.trim());
+            }
+
+            continue;
+        }
+
+        if (s.includes(">>")) {
+            const content = s.slice(0, s.indexOf(">>")).trim();
+
+            if (content) body.push(content);
+
+            return { body, next: i + 1 };
+        }
+
+        if (s && !s.startsWith("//")) {
+            body.push(s);
+        }
+    }
+
+    return { body, next: lines.length };
+}
+
+function parseObjectName(text) {
+    const match = text.match(/"([^"]*)"/);
+
+    if (match) return match[1];
+
+    return text.split(":")[0]
+        .replace("<<", "")
+        .replaceAll('"', "")
+        .trim();
+}
+
+function parseCall(raw, prefix) {
+    if (!raw.startsWith(prefix)) return null;
+
+    const rest = raw.slice(prefix.length);
+    const dot = rest.indexOf(".");
+
+    if (dot < 0) return null;
+
+    const kind = rest.slice(0, dot).trim();
+    const tail = rest.slice(dot + 1);
+    const name = tail.split("(")[0].trim();
+
+    const match = tail.match(/\(([^)]*)\)/);
+
+    const window = match && match[1].trim()
+        ? match[1].trim().replaceAll('"', "")
+        : null;
+
+    return name ? { kind, name, window } : null;
+}
+
+function runProgram(source) {
+    output.replaceChildren();
+    askArea.style.display = "none";
+
+    pendingInput = null;
+    stopped = false;
+
+    const lines = source.split(/\r?\n/);
+    const vars = new Map();
+    const immutable = new Set();
+    const objects = new Map();
+
+    let steps = 0;
+    let currentWindow = "main";
+    let runId = 0;
+
+    const key = (kind, name, win = currentWindow) =>
+        `${win}::${kind}::${name}`;
+
+    function error(line, message) {
+        print(`Astra error (ligne ${line}) : ${message}`, "error");
+    }
+
+    function execute(inputLines, offset = 0, depth = 0) {
+        if (depth > 30) {
+            error(offset + 1, "Profondeur maximale atteinte.");
+            return;
+        }
+
+        let i = 0;
+
+        while (i < inputLines.length && !stopped) {
+            if (++steps > 100000) {
+                error(offset + i + 1, "Limite d'instructions atteinte.");
+                return;
+            }
+
+            const raw = inputLines[i].trim();
+            const lineNo = offset + i + 1;
+            i++;
+
+            if (!raw || raw.startsWith("//") ||
+                raw === "<<" || raw === ">>") {
+                continue;
+            }
+
+            if (raw.startsWith("window ")) {
+                currentWindow = parseObjectName(
+                    raw.replace(/^window\s+/, "")
+                );
+
+                const block = raw.includes("<<")
+                    ? collectBlock(inputLines, i - 1)
+                    : { body: [], next: i };
+
+                i = block.next;
+
+                objects.set(key("window", currentWindow), {
+                    body: block.body,
+                    props: {}
+                });
+
+                continue;
+            }
+
+            if (raw.startsWith("var ") || raw.startsWith("let ")) {
+                const isLet = raw.startsWith("let ");
+                const declaration = raw.slice(raw.indexOf(" ") + 1);
+                const pos = declaration.indexOf("=");
+
+                if (pos < 0) {
+                    error(lineNo, "Syntaxe attendue : var nom = valeur.");
+                    continue;
+                }
+
+                const name = declaration.slice(0, pos).trim();
+
+                vars.set(
+                    name,
+                    evaluate(declaration.slice(pos + 1), vars)
+                );
+
+                if (isLet) immutable.add(name);
+                else immutable.delete(name);
+
+                continue;
+            }
+
+            if (raw.startsWith("set.var.")) {
+                const rest = raw.slice(8);
+                const pos = rest.indexOf("=");
+
+                if (pos < 0) {
+                    error(lineNo, "Syntaxe attendue : set.var.nom = valeur.");
+                    continue;
+                }
+
+                const name = rest.slice(0, pos).trim();
+
+                if (immutable.has(name)) {
+                    error(lineNo, `'${name}' est une constante let.`);
+                    continue;
+                }
+
+                vars.set(
+                    name,
+                    evaluate(rest.slice(pos + 1), vars)
+                );
+
+                continue;
+            }
+
+            const declarations = [
+                ["set.function ", "function"],
+                ["set.condition ", "condition"],
+                ["set.loop ", "loop"],
+                ["set.text ", "text"],
+                ["set.button ", "button"],
+                ["set.label ", "label"]
+            ];
+
+            const declaration = declarations.find(
+                item => raw.startsWith(item[0])
+            );
+
+            if (declaration) {
+                const name = parseObjectName(
+                    raw.slice(declaration[0].length)
+                );
+
+                const block = collectBlock(inputLines, i - 1);
+                i = block.next;
+
+                objects.set(key(declaration[1], name), {
+                    body: block.body,
+                    props: {}
+                });
+
+                continue;
+            }
+
+            if (raw.startsWith("ask ")) {
+                const match = raw.match(
+                    /^ask\s+(.+?)\s+save at\s+([A-Za-z_]\w*)\s*$/
+                );
+
+                if (!match) {
+                    error(
+                        lineNo,
+                        'Syntaxe attendue : ask "question" save at variable.'
+                    );
+                    continue;
+                }
+
+                const variable = match[2];
+
+                if (immutable.has(variable)) {
+                    error(lineNo, `'${variable}' est une constante let.`);
+                    continue;
+                }
+
+                const question = parseString(match[1]);
+
+                print(question);
+
+                const currentRun = ++runId;
+
+                pendingInput = {
+                    variable,
+                    vars,
+                    resume: function (response) {
+                        if (currentRun !== runId) return;
+
+                        vars.set(variable, response);
+                        pendingInput = null;
+                        askArea.style.display = "none";
+
+                        execute(inputLines, lineNo, depth);
+                    }
+                };
+
+                askArea.style.display = "flex";
+                answer.value = "";
+                answer.focus();
+
+                return;
+            }
+
+            const call = parseCall(raw, "call.");
+            const run = parseCall(raw, "run.");
+            const check = parseCall(raw, "check.");
+            const parsed = call || run || check;
+
+            if (parsed) {
+                if (check && parsed.kind !== "condition") {
+                    error(lineNo, "Utilise check.condition.nom(game).");
+                    continue;
+                }
+
+                const windowName = parsed.window || currentWindow;
+                const obj = objects.get(
+                    key(parsed.kind, parsed.name, windowName)
+                );
+
+                if (!obj) {
+                    error(
+                        lineNo,
+                        `Objet ${parsed.kind}.${parsed.name} introuvable dans '${windowName}'.`
+                    );
+                    continue;
+                }
+
+                const body = obj.body || [];
+
+                if (parsed.kind === "text" ||
+                    parsed.kind === "label") {
+                    print(
+                        obj.props.content === undefined
+                            ? `[${parsed.kind} ${parsed.name} sans contenu]`
+                            : obj.props.content
+                    );
+                    continue;
+                }
+
+                if (parsed.kind === "function") {
+                    execute(body, lineNo - 1, depth + 1);
+                    continue;
+                }
+
+                if (parsed.kind === "loop") {
+                    const whileLine = body.find(
+                        line => line.trim().startsWith("while ")
+                    );
+
+                    if (!whileLine) {
+                        error(lineNo, "Boucle sans while.");
+                        continue;
+                    }
+
+                    const condition = whileLine.trim()
+                        .slice(6).replace(/:$/, "").trim();
+
+                    const actions = body.filter(
+                        line => !line.trim().startsWith("while ")
+                    );
+
+                    let count = 0;
+
+                    while (testCondition(condition, vars) &&
+                           !stopped && count++ < 10000) {
+                        execute(actions, lineNo - 1, depth + 1);
+                    }
+
+                    if (count >= 10000) {
+                        error(lineNo, "Limite de 10000 iterations atteinte.");
+                    }
+
+                    continue;
+                }
+
+                if (parsed.kind === "condition") {
+                    const ifLine = body.find(
+                        line => line.trim().startsWith("if ")
+                    );
+
+                    if (!ifLine) {
+                        error(lineNo, "Condition sans if.");
+                        continue;
+                    }
+
+                    const condition = ifLine.trim()
+                        .slice(3).replace(/:$/, "").trim();
+
+                    const actions = body.filter(
+                        line => !line.trim().startsWith("if ")
+                    );
+
+                    if (testCondition(condition, vars)) {
+                        execute(actions, lineNo - 1, depth + 1);
+                    } else {
+                        print(`[condition ${parsed.name} : false]`);
+                    }
+
+                    continue;
+                }
+
+                print(`Objet ${parsed.kind}.${parsed.name}`);
+                continue;
+            }
+
+            if (raw.startsWith("show ")) {
+                print(display(evaluate(raw.slice(5), vars)));
+                continue;
+            }
+
+            if (
+                raw.startsWith("title ") ||
+                raw.startsWith("size ") ||
+                raw.startsWith("set.color.") ||
+                raw.startsWith("set.location ") ||
+                raw.startsWith("set.size ") ||
+                raw.startsWith("set.title ")
+            ) {
+                continue;
+            }
+
+            error(lineNo, `Instruction inconnue : ${raw}`);
+        }
+
+        if (depth === 0 && !pendingInput) {
+            print("=== Fin du programme ===");
+        }
+    }
+
+    execute(lines);
+}
+
+document.getElementById("run").addEventListener("click", () => {
+    runProgram(editor.value);
+});
+
+document.getElementById("clear").addEventListener("click", () => {
+    output.replaceChildren();
+    askArea.style.display = "none";
+    pendingInput = null;
+});
+
+document.getElementById("reset").addEventListener("click", () => {
+    editor.value = initialCode;
+    output.textContent = "Prêt à exécuter Astra !";
+    askArea.style.display = "none";
+    pendingInput = null;
+});
+
+document.getElementById("examples").addEventListener("change", event => {
+    editor.value = examples[event.target.value];
+    output.textContent = "Prêt à exécuter Astra !";
+    askArea.style.display = "none";
+    pendingInput = null;
+});
+
+askArea.addEventListener("submit", event => {
+    event.preventDefault();
+
+    if (pendingInput) {
+        const current = pendingInput;
+        current.resume(answer.value);
+    }
+});
+
+editor.addEventListener("keydown", event => {
+    if (event.key === "Tab") {
+        event.preventDefault();
+
+        const start = editor.selectionStart;
+        const end = editor.selectionEnd;
+
+        editor.setRangeText("    ", start, end, "end");
+    }
+});
+</script>
+
+</body>
+  </html>
